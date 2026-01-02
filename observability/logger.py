@@ -1,8 +1,19 @@
-import logging
+﻿import json
+import uuid
+from datetime import datetime
 
-logger = logging.getLogger("jasper")
-logger.setLevel(logging.INFO)
 
-_handler = logging.StreamHandler()
-_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
-logger.addHandler(_handler)
+# --- Session Logger ---
+# Provides structured logging for session replay and auditing
+class SessionLogger:
+    def __init__(self):
+        self.session_id = str(uuid.uuid4())
+
+    def log(self, event_type: str, payload: dict):
+        record = {
+            "session_id": self.session_id,
+            "timestamp": datetime.utcnow().isoformat(),
+            "event": event_type,
+            "payload": payload,
+        }
+        print(json.dumps(record))

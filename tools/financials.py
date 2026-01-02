@@ -1,9 +1,29 @@
 import httpx 
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
+from tools.exceptions import DataProviderError
 
 class FinancialDataError(Exception):
     """Custom exception for financial data retrieval errors."""
     pass
+
+
+# --- Financial Data Router ---
+# Aggregates multiple data providers to ensure reliability
+class FinancialDataRouter:
+    def __init__(self, providers: List[Any]):
+        self.providers = providers
+
+    async def fetch_income_statement(self, ticker: str) -> Dict:
+        errors = []
+        for provider in self.providers:
+            try:
+                return await provider.income_statement(ticker)
+            except Exception as e:
+                errors.append(str(e))
+
+        raise DataProviderError(
+            f"All providers failed: {errors}"
+        )
 
 
 class FinancialClient:

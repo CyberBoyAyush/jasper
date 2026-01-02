@@ -8,8 +8,10 @@ from agent.planner import Planner
 from agent.executor import Executor
 from agent.validator import validator
 from agent.synthesizer import Synthesizer
-from tools.financials import FinancialClient
+from tools.financials import FinancialDataRouter
+from tools.providers.alpha_vantage import AlphaVantageClient
 from langchain_google_genai import ChatGoogleGenerativeAI
+import os
 
 
 app = typer.Typer()
@@ -19,10 +21,14 @@ console = Console()
 @app.command()
 def ask(query: str):
     async def run():
-        llm = ChatGoogleGenerativeAI(temperature=0)
+        # Initialize LLM and Providers
+        llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0)
+        av_client = AlphaVantageClient(api_key=os.getenv("ALPHA_VANTAGE_API_KEY", "demo"))
+        router = FinancialDataRouter(providers=[av_client])
+
         controller = JasperController(
             Planner(llm),
-            Executor(FinancialClient()),
+            Executor(router),
             validator(),
             Synthesizer(),
         )

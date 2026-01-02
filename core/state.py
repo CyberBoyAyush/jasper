@@ -6,7 +6,7 @@ class Task(BaseModel):
     id: str = Field(..., description="Unique identifier for the task")
     description: str = Field(..., description="Description of the task")
     tool_name: Optional[str] = Field(default=None, description="Name of the tool to be used for the task")
-    tool_args: Optional[str] = Field(default=None, description="Arguments for the tool")
+    tool_args: Optional[Dict[str, Any]] = Field(default=None, description="Arguments for the tool")
     status: Literal["pending", "in_progress", "completed", "failed"] = Field(default="pending", description="Current status of the task")
     error: Optional[str] = Field(default=None, description="Error message if the task failed")
 
@@ -14,6 +14,16 @@ class validationresult(BaseModel):
     is_valid: bool = Field(..., description="Indicates if the state is valid")
     issues: List[str] = Field(default_factory=list, description="List of issues found during validation")
     confidence: float = Field(default=0.0, description="Confidence score of the validation result")
+
+
+# --- Confidence Breakdown ---
+# Provides a detailed view of the confidence score components
+class ConfidenceBreakdown(BaseModel):
+    data_coverage: float      # % of required data fetched
+    data_quality: float       # provider reliability
+    inference_strength: float # logic depth
+    overall: float
+
 
 class Jasperstate(BaseModel):
     query: str = Field(..., description="The original user query")
