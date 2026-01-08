@@ -1,6 +1,6 @@
 ﻿import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 # --- Session Logger ---
@@ -12,7 +12,7 @@ class SessionLogger:
     def log(self, event_type: str, payload: dict):
         record = {
             "session_id": self.session_id,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "event": event_type,
             "payload": payload,
         }

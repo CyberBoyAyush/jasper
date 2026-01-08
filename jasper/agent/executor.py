@@ -1,5 +1,6 @@
 ﻿from ..core.state import Task, Jasperstate
-from ..tools.financials import FinancialDataRouter, FinancialDataError
+from ..tools.financials import FinancialDataRouter
+from ..core.errors import DataProviderError
 from ..observability.logger import SessionLogger
 import json
 
@@ -57,27 +58,36 @@ class Executor:
                         
                         # Validate the result before processing
                         if not result or (isinstance(result, list) and len(result) == 0):
-                            raise FinancialDataError(f"Empty response from provider for {ticker}")
+                            raise DataProviderError(
+                                message=f"Empty response from provider for {ticker}",
+                                suggestion=f"Verify {ticker} is a valid ticker symbol",
+                                debug_details="Empty result from fetch_income_statement"
+                            )
                         
                         # Add validation before storing
                         try:
                             self._validate_financial_data(result)
                         except ValueError as ve:
-                            raise FinancialDataError(f"Invalid financial data structure: {str(ve)}") from ve
+                            raise DataProviderError(
+                                message=f"Invalid financial data structure: {str(ve)}",
+                                suggestion="Provider returned malformed data",
+                                debug_details=str(ve)
+                            ) from ve
 
                         state.task_results[task.id] = result
                         task.status = "completed"
                         self.logger.log("TASK_EXECUTED", {"task_id": task.id, "status": task.status})
                         break
-                    except FinancialDataError as fd_err:
+                    except DataProviderError as fd_err:
                         # Retryable error; log and attempt retry
                         attempts += 1
-                        self.logger.log("TASK_RETRY", {"task_id": task.id, "attempt": attempts, "error": str(fd_err)})
+                        self.logger.log("TASK_RETRY", {"task_id": task.id, "attempt": attempts, "error": fd_err.message})
                         if attempts > state.max_retries:
                             task.status = "failed"
-                            task.error = str(fd_err)
-                            self.logger.log("TASK_FAILED", {"task_id": task.id, "error": str(fd_err)})
+                            task.error = fd_err.message
+                            self.logger.log("TASK_FAILED", {"task_id": task.id, "error": fd_err.message})
                             break
+                        last_exc = fd_err
                     except (KeyError, TypeError, ValueError) as e:
                         # Non-retryable errors; fail immediately
                         task.status = "failed"
@@ -87,7 +97,12 @@ class Executor:
             else:
                 raise ValueError(f"Unknown task description: {task.description}")
           
-        except (FinancialDataError, Exception) as e:
-            task.status = "failed"
-            task.error = str(e)
-            self.logger.log("TASK_FAILED", {"task_id": task.id, "error": str(e)})
+        except (DataProviderError, Exception) as e:
+            if task.status != "completed":  # Don't overwrite if already succeeded
+                task.status = "failed"
+                if isinstance(e, DataProviderError):
+                    task.error = e.message
+                else:
+                    task.error = str(e)
+                self.logger.log("TASK_FAILED", {"task_id": task.id, "error": task.error})
+
