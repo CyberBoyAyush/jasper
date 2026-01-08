@@ -7,31 +7,24 @@ class validator:
         self.logger = logger or SessionLogger()
 
     def validate(self, state: Jasperstate) -> validationresult:
-        """
-        Validate the execution state. If validation fails:
-        - Do NOT allow synthesis
-        - Set overall confidence to 0.0
-        - Return list of blocking issues
-        """
         self.logger.log("VALIDATION_STARTED", {"plan_length": len(state.plan)})
         issues = []
 
-        # 1. Task completion AND error checking (BLOCKING)
+        # 1. Task completion AND error checking
         for task in state.plan:
             if task.status != "completed":
-                issues.append(f"Incomplete task: {task.description} (status: {task.status})")
+                issues.append(f"Incomplete task: {task.description}")
             
             if task.error:
-                issues.append(f"Task failed: {task.description} - {task.error}")
+                issues.append(f"Task error: {task.description} - {task.error}")
 
-        # 2. Data sanity checks (BLOCKING)
+        # 2. Data sanity checks
         for task in state.plan:
             if task.id not in state.task_results:
                 if task.status == "completed":
                     issues.append(f"Missing data for completed task: {task.description}")
             elif not state.task_results[task.id]:
-                # Empty or None result is invalid
-                issues.append(f"Empty or malformed data for task: {task.description}")
+                issues.append(f"Empty data for task: {task.description}")
 
         # 3. Financial logic checks
         self._validate_financial_consistency(state, issues)
@@ -39,22 +32,6 @@ class validator:
         is_valid = len(issues) == 0
         
         # Calculate Confidence Breakdown
-        # If any blocking issues, overall confidence is 0.0
-        if not is_valid:
-            breakdown = ConfidenceBreakdown(
-                data_coverage=0.0,
-                data_quality=0.0,
-                inference_strength=0.0,
-                overall=0.0
-            )
-            return validationresult(
-                is_valid=False,
-                issues=issues,
-                confidence=0.0,
-                breakdown=breakdown
-            )
-        
-        # Only compute detailed confidence if validation passed
         data_coverage = len(state.task_results) / len(state.plan) if state.plan else 0.0
         
         data_quality = 1.0
@@ -71,16 +48,16 @@ class validator:
             data_quality = 0.0
 
         inference_strength = 0.9 if is_valid else 0.0
-        overall_confidence = (data_coverage + data_quality + inference_strength) / 3
-
+        overall_confidence = 0.0 if not is_valid else round(data_coverage * data_quality * inference_strength, 2)
+        
         breakdown = ConfidenceBreakdown(
-            data_coverage=data_coverage,
-            data_quality=data_quality,
+            data_coverage=round(data_coverage, 2),
+            data_quality=round(data_quality, 2),
             inference_strength=inference_strength,
             overall=overall_confidence
         )
 
-        return validationresult(
+        result = validationresult(
             is_valid=is_valid,
             issues=issues,
             confidence=overall_confidence,

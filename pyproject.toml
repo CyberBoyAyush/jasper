@@ -5,68 +5,23 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "jasper"
 version = "0.2.0"
-description = "CLI-first autonomous financial research agent with tool-grounded data and explicit validation"
-authors = [{name = "Jasper Contributors", email = "opensource@jasper.local"}]
-readme = "README.md"
-license = {text = "MIT"}
-keywords = ["finance", "research", "agent", "cli", "autonomous", "financial-intelligence"]
-classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Environment :: Console",
-    "Intended Audience :: Financial and Insurance Industry",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Natural Language :: English",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Office/Business :: Financial",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
-]
-requires-python = ">=3.9,<4.0"
+description = "Financial research agent"
+requires-python = ">=3.9"
 dependencies = [
-    "typer>=0.9.0,<1.0.0",
-    "rich>=13.0.0,<14.0.0",
-    "pydantic>=2.0.0,<3.0.0",
-    "langchain-core>=0.1.0,<0.2.0",
-    "langchain-openai>=0.1.0,<0.2.0",
-    "openai>=1.0.0,<2.0.0",
-    "httpx>=0.24.0,<1.0.0",
-    "python-dotenv>=1.0.0,<2.0.0",
-    "yfinance>=0.2.0,<0.3.0",
+    "typer>=0.9.0",
+    "rich>=13.0.0",
+    "pydantic>=2.0.0",
+    "langchain-core>=0.1.0",
+    "langchain-openai>=0.1.0",
+    "openai>=1.0.0",
+    "httpx>=0.24.0",
+    "python-dotenv>=1.0.0",
+    "yfinance>=0.2.0",
 ]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0.0,<8.0.0",
-    "pytest-asyncio>=0.21.0,<1.0.0",
-    "black>=23.0.0",
-    "ruff>=0.1.0",
-]
-
-[project.urls]
-Homepage = "https://github.com/jasper-ai/jasper"
-Documentation = "https://github.com/jasper-ai/jasper/blob/main/README.md"
-Repository = "https://github.com/jasper-ai/jasper.git"
-Issues = "https://github.com/jasper-ai/jasper/issues"
-Changelog = "https://github.com/jasper-ai/jasper/releases"
 
 [project.scripts]
-jasper = "jasper.cli.main:main"
+jasper = "jasper.cli.main:app"
 
-[tool.setuptools]
-packages = ["jasper", "jasper.cli", "jasper.core", "jasper.agent", "jasper.tools", "jasper.tools.providers", "jasper.observability"]
-
-[tool.setuptools.package-data]
-jasper = ["py.typed"]
-
-[tool.pytest.ini_options]
-asyncio_mode = "auto"
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["jasper*"]

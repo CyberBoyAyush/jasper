@@ -18,11 +18,7 @@ class JasperController:
         self.logger = logger or SessionLogger()
 
     async def run(self, query: str) -> Jasperstate:
-        """Step through the entire workflow: plan → execute → validate → synthesize.
-        
-        VALIDATION BLOCKS SYNTHESIS:
-        If validation fails, synthesis will NOT run and confidence is 0.0.
-        """
+        """Step through the entire workflow: plan → execute → validate → synthesize."""
         state = Jasperstate(query=query)
         state.status = "Planning"
         try:
@@ -38,34 +34,22 @@ class JasperController:
                 await self.executor.execute_task(state, task)
                 self.logger.log("TASK_COMPLETED", {"task_id": task.id, "status": task.status})
 
-            # Validation phase (MUST PASS before synthesis)
+            # Validation phase
             state.status = "Validating"
             try:
                 state.validation = self.validator.validate(state)
-                self.logger.log(
-                    "VALIDATION_COMPLETED",
-                    {
-                        "is_valid": state.validation.is_valid,
-                        "issues_count": len(state.validation.issues),
-                        "confidence": state.validation.confidence
-                    }
-                )
             except Exception as e:
                 self.logger.log("VALIDATION_ERROR", {"error": str(e)})
                 state.status = "Failed"
                 state.error = f"Validation error: {str(e)}"
-                state.error_source = "validation"
                 return state
 
-            # BLOCKING: Validation must pass to proceed to synthesis
             if not state.validation.is_valid:
                 self.logger.log("VALIDATION_FAILED", {"issues": state.validation.issues})
                 state.status = "Failed"
-                state.error = f"Validation failed: {len(state.validation.issues)} issue(s) found. Cannot synthesize answer."
-                state.error_source = "validation"
                 return state
 
-            # Synthesis phase (only if validation passed)
+            # Synthesis phase
             state.status = "Synthesizing"
             try:
                 state.final_answer = await self.synthesizer.synthesize(state)
@@ -94,6 +78,6 @@ class JasperController:
             # Surface any unexpected errors as structured failure
             self.logger.log("WORKFLOW_ERROR", {"error": str(e)})
             state.status = "Failed"
+            # attach error for CLI visibility
             state.error = str(e)
-            state.error_source = "workflow"
             return state
