@@ -3,6 +3,8 @@
 > **Terminal-native autonomous financial research agent.**  
 > Deterministic planning. Tool-grounded data. Validation gating. Human-trustworthy answers.
 
+![Jasper CLI](docs/images/screenshot.png)
+
 [![PyPI](https://img.shields.io/pypi/v/jasper-finance.svg)](https://pypi.org/project/jasper-finance/)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -146,26 +148,26 @@ jasper ask "What is Apple's revenue trend over the last 3 years?"
 ```
 
 Expected output:
-```
+```text
 Researching: What is Apple's revenue trend over the last 3 years?
 
-[Progress board with live task updates]
+ MISSION CONTROL
+[EXECUTING] Fetching live market data...
+└── RESEARCH PLAN
+    ├── ✔ Fetch income statement for AAPL
+    ├── ✔ Calculate YoY growth percentages
+    └── ○ Validate data consistency
 
-Research Completed
-─────────────────────────────────────────────────────────────────
+[... short pause for report weight ...]
 
-Final Answer
-─────────────────────────────────────────────────────────────────
-Apple's revenue has shown consistent growth: FY2021 $365.8B → FY2022 $394.3B (+7.8%) → FY2023 $383.3B (-2.8%). 
-The decline in FY2023 was driven by macroeconomic headwinds and lower iPhone sales.
+INTELLIGENCE MEMO
+Target Entities: AAPL
+Data As Of: 2026-01-10 12:00 UTC | Sources: Income Statement
+───────────────────────────────────────────────────────────────────────
 
-Confidence Breakdown
-─────────────────────────────────────────────────────────────────
-Data Coverage:        0.85  (strong: 3 years of data fetched)
-Data Quality:         0.92  (reliable: official financial statements)
-Inference Strength:   0.90  (solid: consistent data patterns)
-─────────────────────────────────────────────────────────────────
-Overall Confidence:   0.79
+# 1 Revenue Scale & Growth Trajectory
+- 2024 Revenue: $391.04B, representing a 2.0% YoY growth from $383.29B in 2023.
+- ...
 ```
 
 ### Interactive REPL
@@ -176,21 +178,26 @@ jasper interactive
 
 You'll see a prompt:
 
-```
+```text
 Interactive Mode. Type 'exit' to quit.
 
-? Enter Financial Query: Compare AAPL and MSFT operating margins for 2023
+? Enter Financial Query: Analyze Amazon's operating performance.
 ```
 
-Each query runs the full workflow (Planning → Execution → Validation → Synthesis).  
+Each query runs the full workflow (Planning → Execution → Validation → Synthesis) with a live streaming tree.  
 If validation fails on any query, you'll see:
 
-```
-[bold red]Research Failed[/bold red]
+```text
+ MISSION CONTROL
+[VALIDATING] Verifying data integrity...
+└── RESEARCH PLAN
+    ├── ✔ Fetch income statement for AMZN
+    └── ✖ Missing data for task: Fetch balance sheet
+
+Research Failed
 
 Validation Issues:
-  - Missing data for task: Fetch AAPL 10-K statement
-  - Incomplete task: Fetch MSFT 10-K statement
+  - Missing data for task: Fetch balance sheet
 ```
 
 ---
