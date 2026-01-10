@@ -36,6 +36,7 @@ class JasperController:
 
             # Validation phase
             state.status = "Validating"
+            self.logger.log("VALIDATION_STARTED", {})
             try:
                 state.validation = self.validator.validate(state)
             except Exception as e:
@@ -51,6 +52,7 @@ class JasperController:
 
             # Synthesis phase
             state.status = "Synthesizing"
+            self.logger.log("SYNTHESIS_STARTED", {})
             try:
                 state.final_answer = await self.synthesizer.synthesize(state)
                 self.logger.log("FINAL_ANSWER", {"answer": state.final_answer})

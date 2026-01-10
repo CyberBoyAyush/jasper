@@ -55,17 +55,23 @@ class RichLogger(SessionLogger):
         super().__init__()
         self.live = live
         self.tasks = [] # List of task dicts for render_mission_board
+        self.overall_status = "[PLANNING] Initializing research engine..."
 
     def log(self, event_type: str, payload: dict):
         # Override to update UI instead of printing JSON
         
-        if event_type == "PLAN_CREATED":
+        if event_type == "PLANNER_STARTED":
+            self.overall_status = "[PLANNING] Analyzing query and requirements..."
+
+        elif event_type == "PLAN_CREATED":
             # Initialize tasks from plan
             self.tasks = [
                 {"description": t.get("description", "Unknown Task"), "status": "pending", "detail": ""}
                 for t in payload.get("plan", [])
             ]
-            self.live.update(render_mission_board(self.tasks))
+            count = len(self.tasks)
+            self.overall_status = f"[PLANNING] Decomposing query into {count} sub-tasks..."
+            self.live.update(render_mission_board(self.tasks, self.overall_status))
 
         elif event_type == "TASK_STARTED":
             # Update task status to running
@@ -75,7 +81,8 @@ class RichLogger(SessionLogger):
                     t["status"] = "running"
                     t["detail"] = "Executing..."
                     break
-            self.live.update(render_mission_board(self.tasks))
+            self.overall_status = "[EXECUTING] Fetching live market data..."
+            self.live.update(render_mission_board(self.tasks, self.overall_status))
 
         elif event_type == "TASK_COMPLETED":
             # Find the running task and mark completed
@@ -85,11 +92,20 @@ class RichLogger(SessionLogger):
                     t["status"] = "success" if status == "completed" else "failed"
                     t["detail"] = ""
                     break
-            self.live.update(render_mission_board(self.tasks))
+            self.live.update(render_mission_board(self.tasks, self.overall_status))
+
+        elif event_type == "VALIDATION_STARTED":
+            self.overall_status = "[VALIDATING] Verifying data integrity..."
+            self.live.update(render_mission_board(self.tasks, self.overall_status))
+
+        elif event_type == "SYNTHESIS_STARTED":
+            self.overall_status = "[SYNTHESIZING] Compiling executive report..."
+            self.live.update(render_mission_board(self.tasks, self.overall_status))
 
 async def execute_research(query: str, console: Console) -> Jasperstate:
     # Setup Live display with initial empty board
-    with Live(render_mission_board([]), refresh_per_second=10, console=console) as live:
+    # Initialize with default status for immediate visual feedback
+    with Live(render_mission_board([], "[PLANNING] Initializing research engine..."), refresh_per_second=10, console=console) as live:
         
         # Initialize Logger with Live reference
         logger = RichLogger(live)
@@ -112,6 +128,7 @@ async def execute_research(query: str, console: Console) -> Jasperstate:
         state = await controller.run(query)
         
     # After Live block, show results
+    await asyncio.sleep(0.2) # Short pause to give report "weight"
     console.print("\n")
     
     if state.status == "Failed":
