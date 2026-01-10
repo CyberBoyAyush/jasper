@@ -3,7 +3,7 @@
 > **Terminal-native autonomous financial research agent.**  
 > Deterministic planning. Tool-grounded data. Validation gating. Human-trustworthy answers.
 
-![Jasper CLI](docs/images/screenshot.png)
+![Jasper CLI](./assests/Screenshot%202026-01-10%20125137.png)
 
 [![PyPI](https://img.shields.io/pypi/v/jasper-finance.svg)](https://pypi.org/project/jasper-finance/)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
