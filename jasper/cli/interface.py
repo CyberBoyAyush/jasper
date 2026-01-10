@@ -13,7 +13,7 @@ from ..core.config import THEME, BANNER_ART
 
 def render_banner():
     """
-    Renders the ASCII banner with a gradient and subtitle.
+    Renders the ASCII banner with a gradient, borderless.
     """
     # Create Text object from raw ASCII
     text = Text(BANNER_ART)
@@ -29,16 +29,15 @@ def render_banner():
     # Subtitle with background color
     subtitle = Text(" >> FINANCIAL INTELLIGENCE SYSTEM << ", style=f"bold #000000 on {THEME['Accent']}")
     
-    # Panel with padding and breathing room
-    panel = Panel(
+    # Header construction without Panel
+    header_group = Group(
+        Text(""), # Top spacing
         Align.center(text),
-        padding=(2, 4),
-        subtitle=subtitle,
-        subtitle_align="center",
-        border_style=THEME["Brand"],
-        style=f"on {THEME['Background']}"
+        Align.center(subtitle),
+        Text("") # Bottom spacing
     )
-    return panel
+    
+    return header_group
 
 def render_mission_board(tasks, overall_status=""):
     """
