@@ -1,208 +1,224 @@
-/**
- * Jasper Finance - Professional Report Stylesheet v1.0
- * Designed for audit-ready PDF exports via xhtml2pdf
- * Deterministic, offline-capable, Windows-compatible, print-optimized
- */
+/* 
+   Jasper Finance Report Theme - Analyst Memo v3
+   Optimized for dual-engine compatibility (WeasyPrint & xhtml2pdf).
+   Focus: Pagination control, Signal Box, and Content Separation.
+*/
 
-/* ===== ROOT & PAGE LAYOUT ===== */
 body {
     font-family: Helvetica, Arial, sans-serif;
+    line-height: 1.55;
     color: #2c3e50;
-    background-color: white;
+    background-color: #ffffff;
     margin: 0;
-    padding: 20px 15px;
+    padding: 0;
     font-size: 10pt;
-    line-height: 1.5;
 }
 
-html {
-    font-size: 10pt;
-    line-height: 1.5;
-}
-
-/* ===== TYPOGRAPHY ===== */
-h1 {
-    font-size: 28pt;
-    font-weight: bold;
-    margin: 0 0 20pt 0;
-    color: #1a252f;
-}
-
-h2 {
-    font-size: 16pt;
-    font-weight: bold;
-    margin: 20pt 0 12pt 0;
-    color: #2c3e50;
-    border-bottom: 2px solid #3498db;
-    padding-bottom: 8pt;
-}
-
-h3 {
-    font-size: 12pt;
-    font-weight: bold;
-    margin: 12pt 0 8pt 0;
-    color: #34495e;
-}
-
-p {
-    margin: 8pt 0;
-    text-align: justify;
-}
-
-/* ===== COVER SECTION ===== */
-.cover-section {
-    page-break-after: always;
-    height: 100%;
-    text-align: center;
-    background-color: #f8f9fa;
-    padding: 40pt 20pt;
-    margin: -20px -15px;
-    display: block;
-}
-
-.cover-logo {
-    font-size: 24pt;
-    font-weight: bold;
-    color: #3498db;
-    margin-bottom: 30pt;
-    letter-spacing: 2pt;
-}
-
-.cover-title {
-    font-size: 32pt;
-    font-weight: bold;
-    color: #1a252f;
-    margin-bottom: 20pt;
-}
-
-.cover-query {
-    font-size: 14pt;
-    color: #7f8c8d;
-    margin-bottom: 40pt;
-    font-style: italic;
-}
-
-.cover-metadata {
-    font-size: 11pt;
-    color: #95a5a6;
-    border-top: 1px solid #bdc3c7;
-    border-bottom: 1px solid #bdc3c7;
-    padding: 15pt 0;
-    margin-top: 30pt;
-}
-
-.metadata-item {
-    margin: 4pt 0;
-}
-
-/* ===== CONTENT SECTIONS ===== */
+/* Pagination Control */
 .report-section {
+    margin-bottom: 25pt;
     page-break-inside: avoid;
+}
+
+h1, h2, h3 { 
+    page-break-after: avoid; 
+    break-after: avoid;
+    margin-top: 1.5em;
+}
+
+/* Force page breaks only for major sections if requested */
+h2#executive-summary, 
+h2#financial-evidence, 
+h2#limitations {
+    page-break-before: always;
+    break-before: page;
+}
+
+/* Signal Box - Style based on blockquote formatting in synthesis */
+blockquote:first-of-type {
+    border: 1.5pt solid #2c3e50;
+    background-color: #f8f9fa;
+    padding: 12pt 18pt;
+    margin-bottom: 30pt;
+    font-style: normal;
+}
+
+/* Executive Summary Logic Table */
+.exec-summary-grid {
+    width: 100%;
     margin-bottom: 20pt;
+    border-bottom: 1.5pt solid #e5e8e8;
 }
 
-.report-section h2 {
-    margin-top: 24pt;
-}
-
-/* ===== TABLE STYLING ===== */
+/* Evidence Tables Styling */
 table {
     width: 100%;
     border-collapse: collapse;
-    margin: 12pt 0;
+    margin: 1.5em 0 0.5em 0;
     font-size: 9pt;
-    page-break-inside: avoid;
-}
-
-thead {
-    background-color: #34495e;
-    color: white;
 }
 
 th {
-    padding: 10pt;
+    border-bottom: 1.5pt solid #2c3e50;
+    color: #2c3e50;
     text-align: left;
-    font-weight: bold;
-    border: 1px solid #2c3e50;
+    padding: 6pt;
+    background-color: #f2f4f4; /* Subtle header bg */
 }
 
 td {
-    padding: 8pt;
-    border: 1px solid #ecf0f1;
+    padding: 5pt 6pt;
+    border-bottom: 0.5pt solid #e5e8e8;
 }
 
-/* Zebra striping for alternating rows */
-tbody tr:nth-child(odd) {
-    background-color: #f8f9fa;
-}
-
-tbody tr:nth-child(even) {
-    background-color: white;
-}
-
-/* Highlight cells with key metrics */
-.metric-highlight {
-    background-color: #ecf0f1;
-    font-weight: bold;
-    color: #2c3e50;
-}
-
-/* ===== LISTS & BULLETS ===== */
-ul, ol {
-    margin: 8pt 0;
-    padding-left: 20pt;
-}
-
-li {
-    margin: 4pt 0;
-    line-height: 1.4;
-}
-
-/* ===== CONFIDENCE METRICS BLOCK ===== */
-.confidence-metrics {
-    background-color: #ecf0f1;
-    border-left: 4px solid #3498db;
-    padding: 12pt;
-    margin: 16pt 0;
-    page-break-inside: avoid;
-}
-
-.confidence-metrics h3 {
-    margin-top: 0;
-    color: #2c3e50;
-}
-
-.confidence-row {
-    display: block;
-    margin: 8pt 0;
-    font-size: 10pt;
-    line-height: 1.2;
-}
-
-.confidence-label {
-    font-weight: bold;
-    color: #2c3e50;
-    display: inline-block;
-    width: 40%;
-    vertical-align: middle;
-}
-
-.confidence-value {
-    font-weight: bold;
-    color: #2c3e50;
-    display: inline-block;
-    width: 20%;
+/* Right-align numeric columns (approximate) */
+td:nth-child(n+2), th:nth-child(n+2) {
     text-align: right;
 }
 
-/* ===== FOOTER SECTION ===== */
-.footer-section {
-    page-break-before: always;
-    margin-top: 30pt;
-    padding-top: 20pt;
-    border-top: 2px solid #3498db;
+/* Content Type Separation */
+blockquote {
+    margin: 1em 0;
+    padding: 10pt 15pt;
+    background-color: #ebf5fb; /* Interpretation callout */
+    border-left: 4pt solid #2980b9;
+    font-style: normal;
+}
+
+em {
+    color: #7f8c8d; /* Assumption style */
+}
+
+.warning-block {
+    background-color: #fdf5f5;
+    border: 1pt solid #c0392b;
+    padding: 10pt;
+    margin: 1.5em 0;
+    color: #c0392b;
+}
+
+/* Institutional Cover */
+.cover-page {
+    height: 22cm;
+    width: 100%;
+    background-color: #2c3e50;
+    color: white;
+    text-align: center;
+}
+
+.cover-content {
+    padding-top: 4cm;
+}
+
+.cover-logo { font-size: 32pt; font-weight: bold; letter-spacing: 2pt; }
+.cover-title { font-size: 20pt; margin: 20pt 0; }
+.cover-footer { padding-top: 4cm; font-size: 9pt; color: #95a5a6; }
+
+/* Metadata Area */
+.metadata-grid {
+    margin: 15pt 0;
+    padding: 10pt;
+    background: #fdfdfd;
+    border: 0.5pt solid #e5e8e8;
+}
+
+.metadata-label { font-weight: bold; font-size: 9pt; color: #5d6d7e; }
+
+/* Cover Page */
+.cover-page {
+    height: 25cm; /* Slightly less than A4 to prevent spillover in xhtml2pdf */
+    width: 100%;
+    background-color: #34495e;
+    color: white;
+    text-align: center;
+}
+
+.cover-content {
+    padding-top: 5cm;
+    padding-left: 40pt;
+    padding-right: 40pt;
+}
+
+.cover-logo {
+    font-size: 40pt;
+    font-weight: 800;
+    letter-spacing: 0.3em;
+    margin-bottom: 20pt;
+}
+
+.cover-title {
+    font-size: 28pt;
+    font-weight: bold;
+    margin-bottom: 20pt;
+    color: white;
+}
+
+.cover-query {
+    font-size: 15pt;
+    font-style: italic;
+    line-height: 1.4;
+    margin: 40pt auto;
+    color: #ecf0f1;
+    max-width: 85%;
+}
+
+.cover-footer {
+    padding-top: 3cm;
+    font-size: 9.5pt;
+    color: #bdc3c7;
+    letter-spacing: 0.5pt;
+}
+
+/* Takeaway / Insight blocks from Markdown */
+blockquote {
+    margin: 1.5em 0;
+    padding: 12pt 20pt;
+    background-color: #f8f9fa;
+    border-left: 3pt solid #1e8449;
+    font-style: italic;
+    color: #2c3e50;
+}
+
+blockquote p {
+    margin-bottom: 0;
+}
+.metadata-grid {
+    margin: 20pt 0;
+    padding: 15pt;
+    background: #f8f9fa;
+    border: 1px solid #e5e8e8;
+}
+
+.metadata-row {
+    margin-bottom: 5pt;
+    font-size: 10pt;
+}
+
+.metadata-label { font-weight: bold; color: #5d6d7e; }
+
+/* Narrative layout */
+.narrative {
+    margin-top: 20pt;
+}
+
+.insights-list {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.insights-list li::before {
+    content: "-> ";
+    color: #1e8449;
+    font-weight: bold;
+}
+
+.disclaimer {
     font-size: 9pt;
-    color: #7f8c8d;
+    color: #5d6d7e;
+    font-style: italic;
+    margin-top: 40pt;
+    padding: 10pt;
+    border-top: 1px solid #e5e8e8;
 }
 
 .footer-version {

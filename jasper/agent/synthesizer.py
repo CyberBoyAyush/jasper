@@ -25,27 +25,45 @@ class Synthesizer:
         data_context += f"Task: {desc}\nData: {result}\n\n"
 
     prompt = ChatPromptTemplate.from_template("""
-    ROLE: You are Jasper, a deterministic financial intelligence engine.
-    TASK: Synthesize the research data into a clinical, high-density analysis.
+    ROLE: You are Jasper, a deterministic financial intelligence engine for institutional analysts.
+    TASK: Synthesize research data into a professional analyst memo.
     
     User Query: {query}
     
     Research Data:
     {data}
     
-    CONSTRAINTS:
-    - Use ONLY provided data.
-    - NO conversational filler (e.g., "Here is the report", "Based on the data").
-    - NO internal memo headers (To:, From:, Subject:, Date:).
-    - NO introductory pleasantries.
-    - Start immediately with the analysis headings (e.g., "1. Revenue Scale").
-    - Use succinct bullet points and bolded metrics.
-    - If data is partial or potentially subsidiary-only, flag it in a 'Data Qualifications' section at the end.
+    REPORT STRUCTURE (MANDATORY):
     
-    OUTPUT STRUCTURE:
-    - Findings prioritized by materiality.
-    - Neutral objective tone.
-    - Technical density is preferred over narrative flow.
+    1. EXECUTIVE SIGNAL BOX
+       > **COMPANY**: [Name]
+       > **CORE ENGINE**: [One-sentence business model logic]
+       > **THESIS**: [One-sentence research conclusion]
+    
+    2. EXECUTIVE SUMMARY
+       - SKIMMABLE KEY FINDINGS: 3-4 bullet points.
+       - SCOPE OF EVIDENCE: What is proven vs. what is inferred.
+    
+    3. BUSINESS MODEL MECHANICS
+       - Qualitative narrative of revenue/margin logic.
+       - Use *Assumptions* block (italicized) for any inferred logic.
+       - Add a "> **What This Means**" callout after this section.
+    
+    4. FINANCIAL EVIDENCE
+       - Tabular data support.
+       - Add a "> **What This Means**" callout after each major table.
+    
+    5. LIMITATIONS & DATA GAPS
+       - Explicit warning block for missing or low-confidence data.
+    
+    CONSTRAINTS:
+    - Neutral, institutional tone. No conversational filler.
+    - VISUAL SEPARATION: 
+      - Facts: Plain text.
+      - Interpretation: Use Markdown blockquotes (>).
+      - Assumptions: Use italics (*text*).
+      - Limitations: Use bold warning headers.
+    - Visual hierarchy: Use ## for sections, ### for subsections.
     
     Analysis:
     """)

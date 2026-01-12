@@ -1,15 +1,15 @@
 """
 PDF Export Module for Jasper Finance
 
-Renders audit-ready PDF reports using Jinja2 + xhtml2pdf.
+Renders audit-ready PDF reports using Jinja2 + WeasyPrint.
 Ensures deterministic, offline-capable output without network access.
-Windows-compatible (no GTK+ dependencies).
+Supports modern CSS features (Grid, Flexbox) for professional layouts.
 
 Architecture:
   - FinalReport (state.py) is the single source of truth
   - Jinja2 template (templates/report.html.jinja) handles semantic HTML
   - CSS (styles/report_v1.css) controls all layout and styling
-  - xhtml2pdf compiles HTML+CSS → PDF deterministically
+  - WeasyPrint compiles HTML+CSS → PDF deterministically
 """
 
 import hashlib
@@ -20,9 +20,18 @@ from datetime import datetime
 from io import BytesIO
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from xhtml2pdf import pisa
+from markdown_it import MarkdownIt
 
 from ..core.state import FinalReport
+
+
+def render_markdown(text: str) -> str:
+    """Convert Markdown to semantic HTML."""
+    md = MarkdownIt("commonmark", {
+        "html": True,
+        "typographer": True,
+    })
+    return md.render(text)
 
 
 def get_report_template_dir() -> Path:
@@ -80,7 +89,7 @@ def setup_jinja_environment() -> Environment:
     
     # Register custom filters for deterministic rendering
     env.filters['hash'] = lambda x: hashlib.sha256(x.encode()).hexdigest()[:16]
-    env.filters['safe_html'] = lambda x: x.replace('<', '&lt;').replace('>', '&gt;') if x else ''
+    env.filters['markdown'] = render_markdown
     
     return env
 
@@ -107,10 +116,14 @@ def render_report_html(report: FinalReport) -> str:
     # Get template
     template = env.get_template("report.html.jinja")
     
+    # Pre-render the synthesis text to HTML
+    synthesis_html = render_markdown(report.synthesis_text)
+    
     # Render with context
     html = template.render(
         report=report,
         css_content=css_content,
+        synthesis_html=synthesis_html,
     )
     
     return html
@@ -118,12 +131,10 @@ def render_report_html(report: FinalReport) -> str:
 
 def compile_html_to_pdf(html_content: str, output_path: str) -> str:
     """
-    Compile semantic HTML + CSS to PDF using xhtml2pdf.
+    Compile semantic HTML + CSS to PDF.
     
-    Ensures:
-      - Deterministic output (no network access, no external resources)
-      - Consistent pagination and layout
-      - Windows-compatible (no GTK+ dependencies)
+    Tries WeasyPrint first for professional layouts. 
+    Falls back to xhtml2pdf if system dependencies (GTK+) are missing.
     
     Args:
         html_content: Complete HTML string to render
@@ -131,47 +142,60 @@ def compile_html_to_pdf(html_content: str, output_path: str) -> str:
     
     Returns:
         Absolute path to generated PDF
-    
-    Raises:
-        IOError: If PDF write fails
-        Exception: If compilation fails
     """
     pdf_path = Path(output_path)
     pdf_path.parent.mkdir(parents=True, exist_ok=True)
     
+    # --- Try WeasyPrint (Preferred) ---
     try:
-        # Convert HTML string to PDF using xhtml2pdf
+        import contextlib
+        import sys
+        import logging
+        
+        # Suppress WeasyPrint loggers and standard error streams (GTK+ missing on Windows)
+        logging.getLogger("weasyprint").setLevel(logging.CRITICAL)
+        with contextlib.redirect_stdout(open(os.devnull, "w")), contextlib.redirect_stderr(open(os.devnull, "w")):
+            from weasyprint import HTML
+            HTML(string=html_content).write_pdf(target=str(pdf_path))
+        return str(pdf_path.resolve())
+    except (ImportError, Exception):
+        # Gracefully handle missing GTK+ or WeasyPrint
+        pass
+
+    # --- Fallback to xhtml2pdf (Compatible) ---
+    try:
+        from xhtml2pdf import pisa
+        from io import BytesIO
+        
         result_file = BytesIO()
-        pisa.CreatePDF(
+        # Providing a base_url prevents 'NoneType' + 'str' errors when resolving paths
+        pisa_status = pisa.CreatePDF(
             html_content,
             dest=result_file,
-            link_callback=_offline_link_callback,
+            encoding='utf-8',
+            base_url=str(Path.cwd())
         )
         
-        # Write to file
+        if getattr(pisa_status, 'err', 0) != 0:
+            # Try once more without explicit encoding if it failed
+            result_file = BytesIO()
+            pisa_status = pisa.CreatePDF(
+                html_content, 
+                dest=result_file,
+                base_url=str(Path.cwd())
+            )
+            
+        if getattr(pisa_status, 'err', 0) != 0:
+            raise RuntimeError(f"xhtml2pdf fallback failed with status {getattr(pisa_status, 'err', 'unknown')}")
+            
         with open(pdf_path, "wb") as f:
             result_file.seek(0)
             f.write(result_file.getvalue())
+            
         return str(pdf_path.resolve())
-    
+        
     except Exception as e:
-        raise RuntimeError(f"PDF compilation failed: {str(e)}") from e
-
-
-def _offline_link_callback(uri: str, rel: str):
-    """
-    Custom link callback that prevents network access during PDF generation.
-    
-    Args:
-        uri: URL/path to resource
-        rel: Relationship type
-    
-    Returns:
-        None (prevents external requests)
-    """
-    # Return None to prevent fetching external resources
-    # xhtml2pdf will skip unavailable resources
-    return None
+        raise RuntimeError(f"PDF compilation failed (all engines): {str(e)}") from e
 
 
 def export_report_to_pdf(

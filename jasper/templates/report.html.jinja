@@ -2,159 +2,136 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>{{ report.query | truncate(60) }} - Jasper Financial Report</title>
+    <title>Analyst Memo: {{ report.query | truncate(40) }}</title>
     <style>
-{{ css_content }}
+{{ css_content | safe }}
     </style>
 </head>
 <body>
-    <!-- PAGE TITLE FOR HEADERS -->
-    <div id="page-title" style="display: none;">{{ report.query | truncate(80) }}</div>
-    <div id="generation-timestamp" style="display: none;">Generated: {{ report.timestamp.strftime('%Y-%m-%d %H:%M:%S UTC') }}</div>
     
     <!-- ===== COVER PAGE ===== -->
-    <section class="cover-section">
-        <div class="cover-logo">JASPER</div>
-        
-        <h1 class="cover-title">Financial Research Report</h1>
-        
-        <div class="cover-query">
-            {{ report.query }}
+    <section class="cover-page">
+        <div class="cover-content">
+            <div class="cover-logo">JASPER FINANCE</div>
+            <h1 class="cover-title">Analyst Research Memo</h1>
+            <p style="color: #bdc3c7; font-size: 14pt; margin-top: -40pt; margin-bottom: 60pt; font-weight: 300;">
+                A deterministic analysis of the business model using validated financial data.
+            </p>
+            
+            <div class="cover-query">
+                "{{ report.query }}"
+            </div>
+            
+            <div class="metadata-grid" style="color: #bdc3c7; background: transparent; border: none; border-top: 1px solid #7f8c8d;">
+                <table style="width: 100%; border: none; background: transparent;">
+                    <tr class="metadata-row">
+                        <td class="metadata-label" style="color: #ecf0f1; border: none; background: transparent;">Release Date</td>
+                        <td style="text-align: right; border: none; background: transparent;">{{ report.timestamp.strftime('%B %d, %Y') }}</td>
+                    </tr>
+                    <tr class="metadata-row">
+                        <td class="metadata-label" style="color: #ecf0f1; border: none; background: transparent;">Reference Entities</td>
+                        <td style="text-align: right; border: none; background: transparent;">{{ report.tickers | join(', ') or 'N/A' }}</td>
+                    </tr>
+                    <tr class="metadata-row">
+                        <td class="metadata-label" style="color: #ecf0f1; border: none; background: transparent;">Reliability Score</td>
+                        <td style="text-align: right; border: none; background: transparent;" class="{% if report.confidence_score > 0.8 %}text-success{% else %}text-danger{% endif %}">
+                            {{ (report.confidence_score * 100) | round(1) }}%
+                        </td>
+                    </tr>
+                </table>
+            </div>
         </div>
         
-        <div class="cover-metadata">
-            <div class="metadata-item">
-                <strong>Analysis Date:</strong> {{ report.timestamp.strftime('%B %d, %Y') }}
-            </div>
-            <div class="metadata-item">
-                <strong>Instruments:</strong> {{ report.tickers | join(', ') or 'N/A' }}
-            </div>
-            <div class="metadata-item">
-                <strong>Validation:</strong> {% if report.is_valid %}<span class="text-success">✓ Passed</span>{% else %}<span class="text-danger">✗ Failed</span>{% endif %}
-            </div>
-            <div class="metadata-item">
-                <strong>Confidence:</strong> {{ (report.confidence_score * 100) | round(1) }}%
-            </div>
-            <div class="metadata-item">
-                <strong>Jasper Version:</strong> {{ report.version }}
-            </div>
+        <div class="cover-footer">
+            Jasper Intelligence Engine v{{ report.version }} | Deterministic Financial Research
         </div>
     </section>
-    
-    <!-- ===== CONFIDENCE METRICS ===== -->
-    {% if report.confidence_breakdown %}
-    <section class="report-section">
-        <div class="confidence-metrics">
-            <h3>Confidence Analysis</h3>
-            
-            <div class="confidence-row">
-                <div class="confidence-label">Data Coverage</div>
-                <div class="confidence-bar">
-                    <div class="confidence-fill" style="width: {{ (report.confidence_breakdown.data_coverage * 100) | round(0) }}%"></div>
-                </div>
-                <div class="confidence-value">{{ (report.confidence_breakdown.data_coverage * 100) | round(1) }}%</div>
+
+    <!-- ===== MAIN REPORT CONTENT ===== -->
+    <div class="report-container" style="padding: 0 1.5cm;">
+        
+        <!-- ===== EXECUTIVE CONFIDENCE BLOCK (New early placement) ===== -->
+        <section class="report-section" style="margin-top: 30pt;">
+            <div class="callout callout-confidence" style="border: 1pt solid #2980b9; margin: 0;">
+                <table style="width: 100%; border: none; margin: 0;">
+                    <tr>
+                        <td style="border: none; padding: 0;"><strong>RESEARCH CONFIDENCE:</strong></td>
+                        {% if report.confidence_breakdown %}
+                        <td style="border: none; padding: 0; text-align: right;">
+                            <span style="margin-left: 10pt;">Coverage: {{ (report.confidence_breakdown.data_coverage * 100) | round(0) }}%</span>
+                            <span style="margin-left: 10pt;">Quality: {{ (report.confidence_breakdown.data_quality * 100) | round(0) }}%</span>
+                            <span style="margin-left: 10pt;">Inference: {{ (report.confidence_breakdown.inference_strength * 100) | round(0) }}%</span>
+                        </td>
+                        {% endif %}
+                    </tr>
+                </table>
             </div>
-            
-            <div class="confidence-row">
-                <div class="confidence-label">Data Quality</div>
-                <div class="confidence-bar">
-                    <div class="confidence-fill" style="width: {{ (report.confidence_breakdown.data_quality * 100) | round(0) }}%"></div>
-                </div>
-                <div class="confidence-value">{{ (report.confidence_breakdown.data_quality * 100) | round(1) }}%</div>
+        </section>
+
+        <!-- Semantic Section Wrap for the entire synthesized narrative -->
+        <article class="narrative">
+            {{ synthesis_html | safe }}
+        </article>
+
+        <!-- ===== VALIDATION & DETAILS (Moved down) ===== -->
+        {% if not report.is_valid or report.validation_issues %}
+        <section class="report-section" id="limitations">
+            <div class="warning-block">
+                <h3>⚠ Critical Validation Notes</h3>
+                <ul>
+                    {% for issue in report.validation_issues %}
+                    <li>{{ issue }}</li>
+                    {% endfor %}
+                </ul>
             </div>
+        </section>
+        {% endif %}
+
+        <!-- ===== APPENDIX ===== -->
+        <section class="report-section appendix">
+            <h2>APPENDIX</h2>
             
-            <div class="confidence-row">
-                <div class="confidence-label">Inference Strength</div>
-                <div class="confidence-bar">
-                    <div class="confidence-fill" style="width: {{ (report.confidence_breakdown.inference_strength * 100) | round(0) }}%"></div>
-                </div>
-                <div class="confidence-value">{{ (report.confidence_breakdown.inference_strength * 100) | round(1) }}%</div>
-            </div>
-            
-            <div class="confidence-row" style="margin-top: 12pt; border-top: 1px solid #bdc3c7; padding-top: 8pt;">
-                <div class="confidence-label"><strong>Overall Confidence</strong></div>
-                <div class="confidence-bar">
-                    <div class="confidence-fill" style="width: {{ (report.confidence_breakdown.overall * 100) | round(0) }}%"></div>
-                </div>
-                <div class="confidence-value"><strong>{{ (report.confidence_breakdown.overall * 100) | round(1) }}%</strong></div>
-            </div>
-        </div>
-    </section>
-    {% endif %}
-    
-    <!-- ===== DATA SOURCES ===== -->
-    <section class="report-section">
-        <h2>Data Sources & Methodology</h2>
-        <p>
-            This analysis synthesizes proprietary financial data from the following providers:
-        </p>
-        <ul>
-            {% for source in report.data_sources %}
-            <li>{{ source }}</li>
-            {% endfor %}
-        </ul>
-        <p class="text-muted">
-            All data retrieved on {{ report.timestamp.strftime('%Y-%m-%d') }}.
-            Confidence scores reflect data completeness and provider reliability.
-        </p>
-    </section>
-    
-    <!-- ===== SYNTHESIS / MAIN ANALYSIS ===== -->
-    <section class="report-section">
-        <h2>Financial Analysis</h2>
-        <div style="line-height: 1.6; text-align: justify;">
-            {{ report.synthesis_text | safe }}
-        </div>
-    </section>
-    
-    <!-- ===== VALIDATION SECTION ===== -->
-    {% if not report.is_valid and report.validation_issues %}
-    <section class="report-section">
-        <div class="data-qualifications">
-            <h3>⚠ Validation Issues</h3>
+            <h3>Data Sourcing & Methodology</h3>
             <p>
-                This report encountered the following validation issues during synthesis:
+                The following data providers were queried to compile this report. Analysis is performed 
+                using deterministic logic gates to ensure auditability.
             </p>
             <ul>
-                {% for issue in report.validation_issues %}
-                <li class="qualification-item">{{ issue }}</li>
+                {% for source in report.data_sources %}
+                <li>{{ source }}</li>
                 {% endfor %}
             </ul>
-            <p class="text-muted">
-                <strong>Recommendation:</strong> Review data completeness and confidence metrics before relying on this analysis for investment decisions.
-            </p>
-        </div>
-    </section>
-    {% endif %}
-    
-    <!-- ===== FOOTER / AUDIT TRAIL ===== -->
-    <section class="footer-section">
-        <h2>Report Information</h2>
-        
-        <div class="footer-version">
-            <strong>Generator:</strong> Jasper Finance v{{ report.version }} - Deterministic Financial Intelligence Engine
-        </div>
-        
-        <div class="footer-version">
-            <strong>Generation Timestamp:</strong> {{ report.timestamp.isoformat() }}
-        </div>
-        
-        <div class="footer-version">
-            <strong>Query Hash:</strong> <code class="footer-hash">{{ report.query | hash }}</code>
-        </div>
-        
-        {% if report.task_count %}
-        <div class="footer-version">
-            <strong>Execution Tasks:</strong> {{ report.task_count }}
-        </div>
-        {% endif %}
-        
-        <p class="text-muted" style="margin-top: 16pt; font-size: 8pt;">
-            This report was generated deterministically without interactive LLM parameters.
-            All analyses use only provided financial data and validation rules.
-            No network requests were made during PDF generation.
-            This document is suitable for analyst review and institutional sharing.
-        </p>
-    </section>
+
+            <h3>System Metadata</h3>
+            <div class="metadata-grid">
+                <table style="width: 100%; border: none;">
+                    <tr class="metadata-row">
+                        <td class="metadata-label" style="border: none;">Report ID</td>
+                        <td style="text-align: right; border: none;"><span class="footer-hash">{{ report.query | hash }}</span></td>
+                    </tr>
+                    <tr class="metadata-row">
+                        <td class="metadata-label" style="border: none;">Engine Version</td>
+                        <td style="text-align: right; border: none;">v{{ report.version }}</td>
+                    </tr>
+                    <tr class="metadata-row">
+                        <td class="metadata-label" style="border: none;">Task Audit Trail</td>
+                        <td style="text-align: right; border: none;">{{ report.task_count }} successful execution steps</td>
+                    </tr>
+                    <tr class="metadata-row">
+                        <td class="metadata-label" style="border: none;">Generation Time</td>
+                        <td style="text-align: right; border: none;">{{ report.timestamp.isoformat() }}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="disclaimer">
+                <strong>DETERMINISTIC DISCLAIMER:</strong> This report is generated by a deterministic agent. 
+                All findings are derived strictly from identified tools and cross-referenced data. 
+                This does not constitute professional investment advice.
+            </div>
+        </section>
+    </div>
+
 </body>
+</html>
 </html>
