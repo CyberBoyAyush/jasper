@@ -2,7 +2,7 @@ from ..agent.planner import Planner
 from ..agent.executor import Executor
 from ..agent.validator import validator
 from ..agent.synthesizer import Synthesizer
-from .state import Jasperstate
+from .state import Jasperstate, FinalReport
 from ..observability.logger import SessionLogger
 
 
@@ -57,6 +57,11 @@ class JasperController:
                 state.final_answer = await self.synthesizer.synthesize(state)
                 self.logger.log("FINAL_ANSWER", {"answer": state.final_answer})
                 state.status = "Completed"
+                
+                # Construct FinalReport for audit-ready export
+                state.report = self._build_final_report(state)
+                self.logger.log("REPORT_CREATED", {"report_valid": state.report.is_valid})
+                
             except Exception as e:
                 # Distinguish LLM errors from other failures
                 error_msg = str(e)
@@ -83,3 +88,48 @@ class JasperController:
             # attach error for CLI visibility
             state.error = str(e)
             return state
+
+    def _build_final_report(self, state: Jasperstate) -> FinalReport:
+        """
+        Construct a FinalReport object from Jasperstate.
+        
+        This is the single source of truth for PDF exports.
+        """
+        # Extract tickers and sources from plan
+        tickers = []
+        sources = set()
+        for task in state.plan:
+            if task.tool_args:
+                ticker = task.tool_args.get("ticker") or task.tool_args.get("symbol")
+                if ticker:
+                    tickers.append(ticker.upper())
+            if task.tool_name:
+                sources.add(task.tool_name.replace("_", " ").title())
+        
+        # Deduplicate tickers while preserving order
+        unique_tickers = []
+        for t in tickers:
+            if t not in unique_tickers:
+                unique_tickers.append(t)
+        
+        # Fallbacks
+        if not unique_tickers:
+            unique_tickers = []
+        if not sources:
+            sources = {"SEC EDGAR", "Financial Data Providers"}
+        
+        # Construct FinalReport
+        report = FinalReport(
+            query=state.query,
+            data_sources=list(sources),
+            tickers=unique_tickers,
+            synthesis_text=state.final_answer or "",
+            is_valid=state.validation.is_valid if state.validation else False,
+            validation_issues=state.validation.issues if state.validation else [],
+            confidence_score=state.validation.confidence if state.validation else 0.0,
+            confidence_breakdown=state.validation.breakdown if state.validation else None,
+            task_count=len(state.plan),
+            task_results=state.task_results,
+        )
+        
+        return report

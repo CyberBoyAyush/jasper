@@ -1,4 +1,4 @@
-from typing import List, Any
+from typing import List, Any, Tuple, Literal
 from pydantic import BaseModel, ValidationError
 from langchain_core.prompts import ChatPromptTemplate
 import json
@@ -14,20 +14,49 @@ class Entity(BaseModel):
     ticker: str | None = None
 
 
-NER_PROMPT = """
-Extract financial entities from the user query.
+# --- NEW: Query Intent Model ---
+# Classifies the type of financial question being asked
+class QueryIntent(BaseModel):
+    category: Literal["quantitative", "qualitative", "mixed"]
+    reasoning: str = ""
 
-Rules:
+
+# Combined extraction result
+class ExtractionResult(BaseModel):
+    entities: List[Entity]
+    intent: QueryIntent
+
+
+NER_PROMPT = """
+Extract financial entities from the user query AND classify query intent.
+
+Rules for entities:
 - Identify companies, indices, sectors, macro indicators
 - Include ticker if confidently known
 - If uncertain, leave ticker null
 - Do NOT guess
 
+Rules for intent classification:
+- "quantitative": Query asks for financial metrics (revenue, earnings, margins, growth rates, valuations, debt levels)
+- "qualitative": Query asks for explanations (business model, strategy, competitive position, how they make money, operations)
+- "mixed": Query contains both types of questions
+
+Examples:
+- "What is Apple's revenue?" → quantitative
+- "Explain Uber's business model" → qualitative
+- "How does Amazon make money?" → qualitative
+- "Compare Tesla and Ford operating margins" → quantitative
+- "What is Microsoft's strategy AND revenue growth?" → mixed
+
 Return JSON only in this format:
 {{
   "entities": [
     {{"name": "Company Name", "type": "company", "ticker": "TICKER"}}
-  ]
+  ],
+  "intent": {{
+    "category": "quantitative|qualitative|mixed",
+    "reasoning": "Brief explanation of intent classification"
+  }}
 }}
 
 Query:
@@ -36,7 +65,7 @@ Query:
 
 
 # --- Entity Extractor ---
-# Handles the interpretation of user queries to identify financial entities
+# Handles the interpretation of user queries to identify financial entities and intent
 class EntityExtractor:
     def __init__(self, llm: Any, logger: SessionLogger | None = None):
         # FIX 6: Verify LLM is deterministic
@@ -70,7 +99,13 @@ class EntityExtractor:
         
         return text[start_idx:]
 
-    async def extract(self, query: str) -> List[Entity]:
+    async def extract(self, query: str) -> ExtractionResult:
+        """
+        Extract financial entities AND classify query intent from user query.
+        
+        Returns:
+            ExtractionResult with both entities and intent classification
+        """
         self.logger.log("ENTITY_EXTRACTION_STARTED", {"query": query})
         prompt = ChatPromptTemplate.from_template(NER_PROMPT)
         generate_result = await self.llm.agenerate([prompt.format_messages(query=query)])
@@ -85,6 +120,7 @@ class EntityExtractor:
             self.logger.log("ENTITY_EXTRACTION_PARSE_ERROR", {"raw": raw, "json_text": json_text, "error": str(e)})
             raise RuntimeError("Failed to parse entity extractor output as JSON") from e
 
+        # Extract entities
         entities = []
         for e in data.get("entities", []):
             try:
@@ -94,5 +130,15 @@ class EntityExtractor:
                 # skip invalid entities but log
                 self.logger.log("ENTITY_VALIDATION_ERROR", {"entity": e, "error": ve.errors()})
 
-        self.logger.log("ENTITY_EXTRACTION_COMPLETED", {"count": len(entities)})
-        return entities
+        # Extract intent
+        intent_data = data.get("intent", {})
+        try:
+            intent = QueryIntent(**intent_data)
+        except (ValidationError, TypeError):
+            # Fallback to quantitative if intent classification fails
+            self.logger.log("INTENT_EXTRACTION_ERROR", {"intent_data": intent_data})
+            intent = QueryIntent(category="quantitative", reasoning="Defaulted due to extraction error")
+
+        result = ExtractionResult(entities=entities, intent=intent)
+        self.logger.log("ENTITY_EXTRACTION_COMPLETED", {"count": len(entities), "intent": intent.category})
+        return result

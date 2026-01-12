@@ -1,0 +1,269 @@
+/**
+ * Jasper Finance - Professional Report Stylesheet v1.0
+ * Designed for audit-ready PDF exports via xhtml2pdf
+ * Deterministic, offline-capable, Windows-compatible, print-optimized
+ */
+
+/* ===== ROOT & PAGE LAYOUT ===== */
+body {
+    font-family: Helvetica, Arial, sans-serif;
+    color: #2c3e50;
+    background-color: white;
+    margin: 0;
+    padding: 20px 15px;
+    font-size: 10pt;
+    line-height: 1.5;
+}
+
+html {
+    font-size: 10pt;
+    line-height: 1.5;
+}
+
+/* ===== TYPOGRAPHY ===== */
+h1 {
+    font-size: 28pt;
+    font-weight: bold;
+    margin: 0 0 20pt 0;
+    color: #1a252f;
+}
+
+h2 {
+    font-size: 16pt;
+    font-weight: bold;
+    margin: 20pt 0 12pt 0;
+    color: #2c3e50;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 8pt;
+}
+
+h3 {
+    font-size: 12pt;
+    font-weight: bold;
+    margin: 12pt 0 8pt 0;
+    color: #34495e;
+}
+
+p {
+    margin: 8pt 0;
+    text-align: justify;
+}
+
+/* ===== COVER SECTION ===== */
+.cover-section {
+    page-break-after: always;
+    height: 100%;
+    text-align: center;
+    background-color: #f8f9fa;
+    padding: 40pt 20pt;
+    margin: -20px -15px;
+    display: block;
+}
+
+.cover-logo {
+    font-size: 24pt;
+    font-weight: bold;
+    color: #3498db;
+    margin-bottom: 30pt;
+    letter-spacing: 2pt;
+}
+
+.cover-title {
+    font-size: 32pt;
+    font-weight: bold;
+    color: #1a252f;
+    margin-bottom: 20pt;
+}
+
+.cover-query {
+    font-size: 14pt;
+    color: #7f8c8d;
+    margin-bottom: 40pt;
+    font-style: italic;
+}
+
+.cover-metadata {
+    font-size: 11pt;
+    color: #95a5a6;
+    border-top: 1px solid #bdc3c7;
+    border-bottom: 1px solid #bdc3c7;
+    padding: 15pt 0;
+    margin-top: 30pt;
+}
+
+.metadata-item {
+    margin: 4pt 0;
+}
+
+/* ===== CONTENT SECTIONS ===== */
+.report-section {
+    page-break-inside: avoid;
+    margin-bottom: 20pt;
+}
+
+.report-section h2 {
+    margin-top: 24pt;
+}
+
+/* ===== TABLE STYLING ===== */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12pt 0;
+    font-size: 9pt;
+    page-break-inside: avoid;
+}
+
+thead {
+    background-color: #34495e;
+    color: white;
+}
+
+th {
+    padding: 10pt;
+    text-align: left;
+    font-weight: bold;
+    border: 1px solid #2c3e50;
+}
+
+td {
+    padding: 8pt;
+    border: 1px solid #ecf0f1;
+}
+
+/* Zebra striping for alternating rows */
+tbody tr:nth-child(odd) {
+    background-color: #f8f9fa;
+}
+
+tbody tr:nth-child(even) {
+    background-color: white;
+}
+
+/* Highlight cells with key metrics */
+.metric-highlight {
+    background-color: #ecf0f1;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+/* ===== LISTS & BULLETS ===== */
+ul, ol {
+    margin: 8pt 0;
+    padding-left: 20pt;
+}
+
+li {
+    margin: 4pt 0;
+    line-height: 1.4;
+}
+
+/* ===== CONFIDENCE METRICS BLOCK ===== */
+.confidence-metrics {
+    background-color: #ecf0f1;
+    border-left: 4px solid #3498db;
+    padding: 12pt;
+    margin: 16pt 0;
+    page-break-inside: avoid;
+}
+
+.confidence-metrics h3 {
+    margin-top: 0;
+    color: #2c3e50;
+}
+
+.confidence-row {
+    display: block;
+    margin: 8pt 0;
+    font-size: 10pt;
+    line-height: 1.2;
+}
+
+.confidence-label {
+    font-weight: bold;
+    color: #2c3e50;
+    display: inline-block;
+    width: 40%;
+    vertical-align: middle;
+}
+
+.confidence-value {
+    font-weight: bold;
+    color: #2c3e50;
+    display: inline-block;
+    width: 20%;
+    text-align: right;
+}
+
+/* ===== FOOTER SECTION ===== */
+.footer-section {
+    page-break-before: always;
+    margin-top: 30pt;
+    padding-top: 20pt;
+    border-top: 2px solid #3498db;
+    font-size: 9pt;
+    color: #7f8c8d;
+}
+
+.footer-version {
+    margin: 8pt 0;
+}
+
+.footer-hash {
+    font-family: Courier, monospace;
+    font-size: 8pt;
+    color: #95a5a6;
+    word-wrap: break-word;
+}
+
+/* ===== DATA QUALIFICATIONS ===== */
+.data-qualifications {
+    background-color: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 12pt;
+    margin: 16pt 0;
+    page-break-inside: avoid;
+}
+
+.data-qualifications h3 {
+    margin-top: 0;
+    color: #856404;
+}
+
+.qualification-item {
+    margin: 6pt 0;
+    font-size: 9pt;
+    color: #856404;
+}
+
+/* ===== UTILITY CLASSES ===== */
+.no-break {
+    page-break-inside: avoid;
+}
+
+.page-break {
+    page-break-after: always;
+}
+
+.inline-metric {
+    font-weight: bold;
+    color: #3498db;
+}
+
+.text-muted {
+    color: #7f8c8d;
+}
+
+.text-success {
+    color: #27ae60;
+}
+
+.text-warning {
+    color: #f39c12;
+}
+
+.text-danger {
+    color: #e74c3c;
+}
+
+/* ===== END OF STYLESHEET ===== */

@@ -15,6 +15,7 @@ AVAILABLE_TOOLS = ["income_statement"]
 PLANNER_PROMPT = """
 You are a financial research planner.
 
+Query Intent: {intent}
 Extracted Entities:
 {entities}
 
@@ -22,13 +23,17 @@ Available Tools:
 {available_tools}
 
 Your job:
-- Break the user's question into explicit, ordered research tasks.
-- Each task must declare what data it requires.
-- Use the extracted entities (tickers, names) in the task arguments.
-- ONLY use tools from the available tools list.
-- Do NOT assume data exists.
-- Do NOT compute results.
-- Do NOT answer the question.
+- If intent is QUALITATIVE: Return empty task list (no data fetching needed). Synthesis will use domain knowledge only.
+- If intent is QUANTITATIVE: Break the query into explicit, ordered research tasks for data fetching.
+- If intent is MIXED: Create both qualitative synthesis tasks AND quantitative data-fetching tasks.
+
+For QUANTITATIVE tasks:
+- Each task must declare what data it requires
+- Use extracted entities (tickers, names) in task arguments
+- ONLY use tools from the available tools list
+- Do NOT assume data exists
+- Do NOT compute results
+- Do NOT answer the question
 
 Output JSON ONLY in this format:
 {{
@@ -41,6 +46,9 @@ Output JSON ONLY in this format:
     }}
   ]
 }}
+
+For QUALITATIVE or MIXED queries with no quantitative component:
+- Return: {{"tasks": []}}
 
 User question:
 {query}
@@ -86,8 +94,10 @@ class Planner:
     async def plan(self, query: str) -> List[Task]:
         self.logger.log("PLANNER_STARTED", {"query": query})
 
-        # Preprocessing: Extract entities
-        entities = await self.extractor.extract(query)
+        # Preprocessing: Extract entities AND intent
+        extraction_result = await self.extractor.extract(query)
+        entities = extraction_result.entities
+        intent = extraction_result.intent
         
         # FIX 8: Fail fast if no entities extracted
         if not entities:
@@ -96,10 +106,15 @@ class Planner:
         
         entities_str = "\n".join([f"- {e.name} ({e.type}): {e.ticker or 'N/A'}" for e in entities])
         
-        # FIX 7: Include available tools in prompt
+        # FIX 7: Include available tools and intent in prompt
         tools_str = ", ".join(AVAILABLE_TOOLS)
         prompt = ChatPromptTemplate.from_template(PLANNER_PROMPT)
-        generate_result = await self.llm.agenerate([prompt.format_messages(query=query, entities=entities_str, available_tools=tools_str)])
+        generate_result = await self.llm.agenerate([prompt.format_messages(
+            query=query, 
+            entities=entities_str, 
+            available_tools=tools_str,
+            intent=intent.category
+        )])
         response = generate_result.generations[0][0].text
 
         # Extract JSON from markdown or plain text
@@ -116,6 +131,15 @@ class Planner:
             raise ValueError("Planner output must be a JSON object with a 'tasks' list")
 
         tasks: List[Task] = []
+        
+        # FIX: For qualitative queries, empty task list is valid
+        if intent.category == "qualitative" and len(parsed.get("tasks", [])) == 0:
+            self.logger.log("PLANNER_QUALITATIVE_NO_TASKS", {
+                "intent": intent.category,
+                "reasoning": intent.reasoning
+            })
+            return tasks  # Return empty task list for qualitative queries
+        
         for t in parsed.get("tasks", []):
             if not isinstance(t, dict) or "description" not in t:
                 self.logger.log("PLANNER_TASK_SCHEMA_ERROR", {"task": t})
@@ -123,7 +147,7 @@ class Planner:
 
             # FIX 7: Validate tool_name is known
             tool_name = t.get("tool_name", "")
-            if tool_name not in AVAILABLE_TOOLS:
+            if tool_name and tool_name not in AVAILABLE_TOOLS:
                 raise ValueError(f"Unknown tool: {tool_name}. Available: {AVAILABLE_TOOLS}")
 
             tasks.append(
@@ -137,9 +161,10 @@ class Planner:
                 )
             )
 
-        if not tasks:
-            self.logger.log("PLANNER_EMPTY_TASKS", {"response": parsed})
-            raise ValueError("Planner produced empty task list")
+        # For qualitative queries, empty task list is allowed
+        if intent.category != "qualitative" and not tasks:
+            self.logger.log("PLANNER_EMPTY_TASKS", {"response": parsed, "intent": intent.category})
+            raise ValueError("Planner produced empty task list for non-qualitative query")
 
-        self.logger.log("PLANNER_COMPLETED", {"task_count": len(tasks)})
+        self.logger.log("PLANNER_COMPLETED", {"task_count": len(tasks), "intent": intent.category})
         return tasks

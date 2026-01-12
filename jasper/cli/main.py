@@ -6,6 +6,7 @@ from rich.console import Console
 from rich.live import Live
 from rich.panel import Panel
 from rich.prompt import Prompt
+from pathlib import Path
 
 # Import core components
 from ..core.controller import JasperController
@@ -18,7 +19,8 @@ from ..tools.providers.alpha_vantage import AlphaVantageClient
 from ..tools.providers.yfinance import YFinanceClient
 from ..core.llm import get_llm
 from ..observability.logger import SessionLogger
-from ..core.state import Jasperstate
+from ..core.state import Jasperstate, FinalReport
+from ..export.pdf import export_report_to_pdf, export_report_html
 
 # Import UI components
 from .interface import render_banner, render_mission_board, render_final_report
@@ -31,6 +33,9 @@ app = typer.Typer(
     help="Institutional Financial research agent.",
     no_args_is_help=False
 )
+
+# Session cache for last report (for export)
+_last_report: Optional[FinalReport] = None
 
 @app.callback()
 def main_callback(ctx: typer.Context):
@@ -202,11 +207,6 @@ async def execute_research(query: str, console: Console) -> Jasperstate:
         console.print("\n")
     
     return state
-
-
-# =====================================================================
-# COMMAND 1: ask <query>  —  Execute financial research
-# =====================================================================
 @app.command(name="ask")
 def ask_command(query: str = typer.Argument(..., help="Financial research question (e.g., 'What is Apple revenue?')")):
     """Execute financial research on a query.
@@ -232,7 +232,18 @@ def ask_command(query: str = typer.Argument(..., help="Financial research questi
     console.clear()
     console.print(render_banner())
     console.print(f"\n[{THEME['Accent']}]Researching:[/{THEME['Accent']}] {query}\n")
-    asyncio.run(execute_research(query, console))
+    state = asyncio.run(execute_research(query, console))
+    
+    # Cache the report for export command
+    global _last_report
+    _last_report = state.report
+    
+    return state
+
+
+# =====================================================================
+# COMMAND 1: ask <query>  —  Execute financial research
+# =====================================================================
 
 
 # =====================================================================
@@ -329,6 +340,7 @@ def interactive_command():
     """Run Jasper in interactive mode (REPL).
     
     Type financial questions, get answers. Type 'exit' to quit.
+    Each query is processed independently with full intent classification.
     """
     # Preflight checks
     try:
@@ -342,28 +354,60 @@ def interactive_command():
     # REPL Loop
     console.clear()
     console.print(render_banner())
-    console.print(f"\n[{THEME['Primary Text']}]Interactive Mode. Type 'exit' to quit.[/{THEME['Primary Text']}]\n")
+    console.print(f"\n[{THEME['Primary Text']}]Interactive Mode. Type 'exit' to quit.[/{THEME['Primary Text']}]")
+    console.print(f"[{THEME['Primary Text']}]Commands: [/{THEME['Primary Text']}][{THEME['Accent']}]/export[/{THEME['Accent']}] (Save PDF), [{THEME['Accent']}]/html[/{THEME['Accent']}] (Save HTML)\n")
     
+    global _last_report
     history = []
     
     while True:
         try:
-            user_input = Prompt.ask(f"[{THEME['Accent']}]?[/{THEME['Accent']}] Enter Financial Query")
+            user_input = Prompt.ask(f"[{THEME['Accent']}]?[/{THEME['Accent']}] Enter Financial Query").strip()
+            
             if user_input.lower() in ("exit", "quit", "/bye"):
                 console.print("[bold]Goodbye![/bold]")
                 break
             
-            if not user_input.strip():
+            if not user_input:
                 continue
 
-            effective_query = user_input
-            if history:
-                context_str = "\n".join([f"Q: {q}\nA: {a}" for q, a in history[-2:]])
-                effective_query = f"PREVIOUS CONTEXT:\n{context_str}\n\nCURRENT QUERY:\n{user_input}"
+            # Handle Export Commands
+            if user_input.lower().startswith("/export"):
+                if _last_report is None:
+                    console.print("[yellow]⚠ No report to export. Run a research query first.[/yellow]")
+                    continue
+                
+                parts = user_input.split()
+                out_file = parts[1] if len(parts) > 1 else "report.pdf"
+                try:
+                    pdf_path = export_report_to_pdf(_last_report, out_file, validate=True)
+                    console.print(f"[bold green]✅ PDF exported:[/bold green] {pdf_path}")
+                except Exception as e:
+                    console.print(f"[red]Error exporting PDF: {e}[/red]")
+                continue
 
+            if user_input.lower().startswith("/html"):
+                if _last_report is None:
+                    console.print("[yellow]⚠ No report to export. Run a research query first.[/yellow]")
+                    continue
+                
+                parts = user_input.split()
+                out_file = parts[1] if len(parts) > 1 else "report.html"
+                try:
+                    html_path = export_report_html(_last_report, out_file)
+                    console.print(f"[bold green]✅ HTML exported:[/bold green] {html_path}")
+                except Exception as e:
+                    console.print(f"[red]Error exporting HTML: {e}[/red]")
+                continue
+
+            # Execute Research
             console.print(f"\n[{THEME['Accent']}]Researching:[/{THEME['Accent']}] {user_input}\n")
             
-            state = asyncio.run(execute_research(effective_query, console))
+            state = asyncio.run(execute_research(user_input, console))
+            
+            # Update cache
+            if state.report:
+                _last_report = state.report
             
             if state.status == "Completed" and state.validation and state.validation.is_valid:
                 history.append((user_input, state.final_answer))
@@ -373,6 +417,60 @@ def interactive_command():
         except KeyboardInterrupt:
             console.print("\n[bold]Goodbye![/bold]")
             break
+
+
+# =====================================================================
+# COMMAND 5: export  —  Export research report to PDF
+# =====================================================================
+@app.command(name="export")
+def export_command(format: str = "pdf", out: str = "report.pdf"):
+    """Export the last research report to PDF or HTML.
+    
+    Examples:
+        python -m jasper export
+        python -m jasper export pdf apple.pdf
+        python -m jasper export html apple.html
+    
+    Arguments:
+        format (str): Export format: pdf or html (default: pdf)
+        out (str): Output file path (default: report.pdf)
+    """
+    global _last_report
+    
+    if _last_report is None:
+        console.print(f"[bold {THEME['Error']}]Error:[/bold {THEME['Error']}] No report to export.")
+        console.print("[dim]Run a research query first:[/dim]")
+        console.print(f"  [{THEME['Accent']}]python -m jasper ask 'What is Apple revenue?'[/{THEME['Accent']}]")
+        raise typer.Exit(code=1)
+    
+    format = format.lower().strip()
+    
+    # Export based on format
+    try:
+        if format == "pdf":
+            pdf_path = export_report_to_pdf(_last_report, out, validate=True)
+            console.print(f"[bold green]✅ PDF exported:[/bold green] {pdf_path}")
+            console.print(f"   Size: {Path(pdf_path).stat().st_size:,} bytes")
+            console.print(f"   Confidence: {_last_report.confidence_score:.1%}")
+            console.print(f"   Valid: {_last_report.is_valid}")
+            
+        elif format == "html":
+            html_path = export_report_html(_last_report, out)
+            console.print(f"[bold green]✅ HTML exported:[/bold green] {html_path}")
+            console.print(f"[dim]Open in browser to preview layout[/dim]")
+            
+        else:
+            console.print(f"[bold {THEME['Error']}]Error:[/bold {THEME['Error']}] Unsupported format '{format}'")
+            console.print("[dim]Supported formats: 'pdf', 'html'[/dim]")
+            raise typer.Exit(code=1)
+    
+    except ValueError as e:
+        console.print(f"[bold {THEME['Error']}]Export Failed:[/bold {THEME['Error']}]")
+        console.print(f"[yellow]{str(e)}[/yellow]")
+        raise typer.Exit(code=1)
+    except Exception as e:
+        console.print(f"[bold {THEME['Error']}]Error:[/bold {THEME['Error']}] {str(e)}")
+        raise typer.Exit(code=1)
 
 
 if __name__ == "__main__":
