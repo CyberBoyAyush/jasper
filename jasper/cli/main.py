@@ -29,8 +29,6 @@ from ..core.config import THEME
 
 console = Console()
 app = typer.Typer(
-    invoke_without_command=True,
-    rich_markup_mode="rich",
     help="Institutional Financial research agent.",
     no_args_is_help=False
 )
@@ -208,16 +206,8 @@ async def execute_research(query: str, console: Console) -> Jasperstate:
         if state.report:
             console.print(render_forensic_report(state.report))
             
-            # AUTO-EXPORT
-            try:
-                export_dir = Path("exports")
-                export_dir.mkdir(exist_ok=True)
-                clean_query = "".join(c if c.isalnum() else "_" for c in state.query[:30])
-                pdf_filename = f"report_{clean_query}_{datetime.now().strftime('%H%M%S')}.pdf"
-                pdf_path = export_report_to_pdf(state.report, str(export_dir / pdf_filename))
-                console.print(f"\n[bold green]✅ Forensic Artifact Exported:[/bold green] {pdf_path}")
-            except Exception as e:
-                console.print(f"\n[dim yellow]⚠ Auto-export failed: {e}[/dim yellow]")
+            # Manual export via /export command (auto-export disabled)
+            console.print(f"[dim]Tip: Use [/{THEME['Accent']}]/export[{THEME['Accent']}] to save PDF[/dim]")
         else:
             # Fallback to legacy memo
             console.print(render_final_report(answer, unique_tickers, list(sources)))

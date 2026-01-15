@@ -38,16 +38,39 @@ Instead of just "chatting," Jasper follows a rigorous 4-stage pipeline:
 
 ## 🚀 Installation
 
-### Using pip
-```bash
-pip install jasper-finance
+### Option 1: Pre-Built Executable (Recommended) ⭐
+
+**No Python needed. Everything bundled including PDF renderer.**
+
+**Windows:**
+```powershell
+# Build locally:
+git clone https://github.com/ApexYash11/jasper.git
+cd jasper
+.\scripts\build.ps1
+.\dist\jasper\jasper.exe interactive
 ```
 
-### From Source (Development)
+**Linux/macOS:**
 ```bash
 git clone https://github.com/ApexYash11/jasper.git
 cd jasper
-pip install -e .
+chmod +x scripts/build.sh && ./scripts/build.sh
+./dist/jasper/jasper interactive
+```
+
+### Option 2: Docker (Production)
+
+```bash
+docker build -t jasper-finance:1.0.0 .
+docker run -it jasper-finance:1.0.0 interactive
+```
+
+### Option 3: Python pip
+
+```bash
+pip install jasper-finance
+jasper interactive
 ```
 
 ---

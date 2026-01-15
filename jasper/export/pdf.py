@@ -139,6 +139,10 @@ def compile_html_to_pdf(html_content: str, output_path: str) -> str:
     Tries WeasyPrint first for professional layouts. 
     Falls back to xhtml2pdf if system dependencies (GTK+) are missing.
     
+    WeasyPrint on Windows requires GTK+ libraries. If running from source,
+    the build script (build.ps1) creates a self-contained executable with
+    all dependencies bundled.
+    
     Args:
         html_content: Complete HTML string to render
         output_path: Path where PDF should be written
@@ -181,7 +185,11 @@ def compile_html_to_pdf(html_content: str, output_path: str) -> str:
 
     except (ImportError, Exception) as e:
         # Gracefully handle missing GTK+ or WeasyPrint
-        logger.warning(f"RENDERER FALLBACK: WeasyPrint missing or failed. Using xhtml2pdf (v0.2.0 compatibility mode). Error: {e}")
+        logger.warning(
+            "⚠️  RENDERER FALLBACK: WeasyPrint unavailable. Using xhtml2pdf (basic formatting).\n"
+            "    For full PDF features: use build.ps1 (pre-built executable) or Docker."
+        )
+        logger.debug(f"    Error: {e}")
         pass
 
     # --- Fallback to xhtml2pdf (Compatible) ---

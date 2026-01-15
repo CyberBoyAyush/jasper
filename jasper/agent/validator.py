@@ -32,23 +32,32 @@ class validator:
         is_valid = len(issues) == 0
         
         # Calculate Confidence Breakdown
-        data_coverage = len(state.task_results) / len(state.plan) if state.plan else 0.0
-        
-        data_quality = 1.0
-        if state.task_results:
-            qualities = []
-            for res in state.task_results.values():
-                if isinstance(res, list):
-                    # Expecting at least 3 years for quality
-                    qualities.append(min(1.0, len(res) / 3.0))
-                else:
-                    qualities.append(0.5)
-            data_quality = sum(qualities) / len(qualities)
+        # Handle case where plan is empty (qualitative queries with no financial data fetch)
+        if not state.plan:
+            # Qualitative analysis mode - use answer quality as proxy
+            data_coverage = 1.0  # N/A for qualitative
+            data_quality = 0.85  # Default for knowledge-based responses
+            inference_strength = 0.8
         else:
-            data_quality = 0.0
+            data_coverage = len(state.task_results) / len(state.plan) if state.plan else 0.0
+            
+            data_quality = 1.0
+            if state.task_results:
+                qualities = []
+                for res in state.task_results.values():
+                    if isinstance(res, list):
+                        # Expecting at least 3 years for quality
+                        qualities.append(min(1.0, len(res) / 3.0))
+                    else:
+                        qualities.append(0.5)
+                data_quality = sum(qualities) / len(qualities)
+            else:
+                data_quality = 0.0
 
-        inference_strength = 0.9 if is_valid else 0.0
-        overall_confidence = 0.0 if not is_valid else round(data_coverage * data_quality * inference_strength, 2)
+            inference_strength = 0.9 if is_valid else 0.7
+        # Calculate confidence even if there are minor issues
+        # Major issues reduce confidence, but don't zero it out completely
+        overall_confidence = round(data_coverage * data_quality * inference_strength, 2)
         
         breakdown = ConfidenceBreakdown(
             data_coverage=round(data_coverage, 2),

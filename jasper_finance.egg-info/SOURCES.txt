@@ -1,6 +1,5 @@
 LICENSE
 README.md
-README_PYPI.md
 pyproject.toml
 jasper/__init__.py
 jasper/__main__.py
@@ -22,8 +21,12 @@ jasper/core/controller.py
 jasper/core/errors.py
 jasper/core/llm.py
 jasper/core/state.py
+jasper/export/__init__.py
+jasper/export/pdf.py
 jasper/observability/__init__.py
 jasper/observability/logger.py
+jasper/styles/report_v1.css
+jasper/templates/report.html.jinja
 jasper/tools/__init__.py
 jasper/tools/aplha_vantage.py
 jasper/tools/exceptions.py
@@ -36,4 +39,8 @@ jasper_finance.egg-info/dependency_links.txt
 jasper_finance.egg-info/entry_points.txt
 jasper_finance.egg-info/requires.txt
 jasper_finance.egg-info/top_level.txt
+tests/test_cli_integration.py
+tests/test_package.py
+tests/test_pdf_export.py
+tests/test_pdf_generation.py
 tests/test_v0_1_0.py
