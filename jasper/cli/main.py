@@ -207,7 +207,7 @@ async def execute_research(query: str, console: Console) -> Jasperstate:
             console.print(render_forensic_report(state.report))
             
             # Manual export via /export command (auto-export disabled)
-            console.print(f"[dim]Tip: Use [/{THEME['Accent']}]/export[{THEME['Accent']}] to save PDF[/dim]")
+            console.print(f"[dim]Tip: Use [{THEME['Accent']}]/export[/{THEME['Accent']}] to save PDF[/dim]")
         else:
             # Fallback to legacy memo
             console.print(render_final_report(answer, unique_tickers, list(sources)))
