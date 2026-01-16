@@ -14,7 +14,7 @@ import tempfile
 from pathlib import Path
 from datetime import datetime
 
-from jasper.core.state import FinalReport, ConfidenceBreakdown
+from jasper.core.state import FinalReport, ConfidenceBreakdown, EvidenceItem
 from jasper.export.pdf import (
     render_report_html,
     compile_html_to_pdf,
@@ -51,7 +51,15 @@ def sample_report() -> FinalReport:
             "task_1": {"data": "revenue_data", "status": "completed"},
         },
         # Forensic Fields
-        evidence_log=[],
+        evidence_log=[
+            EvidenceItem(
+                id="E1",
+                metric="Revenue",
+                value="123.5B",
+                period="Q4 2024",
+                source="yfinance"
+            )
+        ],
         inference_map=[],
         logic_constraints={"Scope": "Testing"},
         audit_trail=[]
@@ -74,7 +82,7 @@ def test_css_loading():
     assert len(css) > 0
     assert "body" in css
     assert "table" in css
-    assert "report-section" in css
+    assert "forensic-section" in css
 
 
 def test_html_rendering(sample_report):
@@ -89,11 +97,11 @@ def test_html_rendering(sample_report):
     # Verify report content is rendered (may be escaped)
     assert "Apple" in html or "AAPL" in html
     assert "92" in html  # confidence_score as percentage
-    
+
     # Verify semantic structure
-    assert "cover-page" in html
-    assert "confidence-metrics" in html or "callout-confidence" in html
-    assert "report-section" in html
+    assert "metadata-dashboard" in html
+    assert "meta-label" in html
+    assert "forensic-section" in html
     
     # Verify no network dependencies
     assert "http://" not in html.split("<body>")[0]  # No external URLs in head
@@ -165,8 +173,8 @@ def test_pdf_export_invalid_report_raises(sample_report):
         # Should raise ValueError
         with pytest.raises(ValueError) as exc_info:
             export_report_to_pdf(sample_report, str(output_path), validate=True)
-        
-        assert "Cannot export invalid report" in str(exc_info.value)
+
+        assert "Integrity checks failed" in str(exc_info.value)
         assert "Missing revenue data" in str(exc_info.value)
 
 
